@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+import pandas as pd
 
 def aligned(line, col):
     mirna = line.split('\t')[col]
@@ -160,6 +160,52 @@ def mirexpress(input_name, results, tool, data, dataseq, lendata, quals):
             tool))
 
 
+
+
+def quagmir(simFile,resFile, file):
+
+    df = pd.read_csv(simFile, header=None)
+    readsDF = pd.DataFrame({  'NAME'     : df[0][df.index % 4 == 0 ].tolist(),
+                       'SEQUENCE' : df[0][df.index % 4 == 1 ].tolist(),
+                       'QUALS'    : df[0][df.index % 4 == 3 ].tolist()})
+
+    readsDF.NAME = readsDF.NAME.apply(lambda x: x.replace('@',''))
+
+    resultsDF = pd.DataFrame.from_csv(resFile, sep='\t').reset_index()
+    resultsDF = resultsDF[['MIRNA','SEQUENCE', 'READS', 'LEN_READ']]
+
+    allDF = pd.merge(readsDF, resultsDF, how='outer', on=['SEQUENCE'])
+
+    allDF['TOOL'] = 'QuagmiR'
+    allDF['NAME_MIR'] = allDF.NAME.apply(lambda x: x.split("_")[1])
+    allDF['ADD'] = allDF.NAME.apply(lambda x: x.find('add:null'))
+    allDF['MUT'] = allDF.NAME.apply(lambda x: x.find('mut:null'))
+
+    aligned = allDF[pd.notnull(allDF.MIRNA)]
+
+    notAligned = allDF[pd.notnull(allDF.MIRNA)==False].copy()
+    notAligned['LEN_READ'] = notAligned.SEQUENCE.apply(lambda x: len(x))
+    notAligned['MIRNA'] = notAligned.NAME.apply(lambda x: x.split('_')[1])
+    notAligned['ALIGNED']  = 'NA'
+    notAligned['GOOD_ALIGNED']  = 'no'
+
+    goodAligned = aligned[aligned.apply(lambda x: x.MIRNA.startswith(x.NAME_MIR)>-1, axis=1)].copy()
+    goodAligned['ALIGNED'] = 'yes'
+    goodAligned['GOOD_ALIGNED'] = 'yes'
+    notAligned['GOOD_ALIGNED']  = 'no'
+    badAligned = aligned[aligned.apply(lambda x: x["MIRNA"].startswith(x.NAME_MIR)==-1, axis=1)]
+    badAligned['GOOD_ALIGNED']  = 'no'
+
+
+    df = goodAligned.append(badAligned)
+    df = df.append(notAligned)
+
+    columns = ['NAME', 'NAME_MIR', 'GOOD_ALIGNED', 'MIRNA', 'ADD', 'MUT', 'LEN_READ', 'QUALS', 'ALIGNED', 'TOOL']
+    with open(file, 'a') as f:
+        df.sort_index()[columns].to_csv(f, sep='\t', header=False, index=False)
+
+
+
 results = open('results.txt', 'w')
 
 s3_1 = read_sim('simulations/3p_1.fastq')
@@ -180,25 +226,22 @@ microrazers('outputs/test_5p-ran5_2v.razers', results, 'microrazers_5p_2', *s5_2
 
 # write_dicts("s3_1", *s3_1)
 
-mirexpress('outputs/_2_test_3p-ran5_1v.alignment_result', results, 'mirexpress_3p_1',
-           *s3_1)
-mirexpress('outputs/_1_test_3p-ran5_2v.alignment_result', results, 'mirexpress_3p_2',
-           *s3_2)
-mirexpress('outputs/_1_test_5p-ran5_1v.alignment_result', results, 'mirexpress_5p_1',
-           *s5_1)
-mirexpress('outputs/_1_test_5p-ran5_2v.alignment_result', results, 'mirexpress_5p_2',
-           *s5_2)
+mirexpress('outputs/_2_test_3p-ran5_1v.alignment_result', results, 'mirexpress_3p_1', *s3_1)
+mirexpress('outputs/_1_test_3p-ran5_2v.alignment_result', results, 'mirexpress_3p_2', *s3_2)
+mirexpress('outputs/_1_test_5p-ran5_1v.alignment_result', results, 'mirexpress_5p_1', *s5_1)
+mirexpress('outputs/_1_test_5p-ran5_2v.alignment_result', results, 'mirexpress_5p_2', *s5_2)
 
 _sam('outputs/_1_test_3p-ran5_1v.sam', 'razer3_3p_ran5_1v', results, *s3_1)
 _sam('outputs/_1_test_3p-ran5_2v.sam', 'razer3_3p_ran5_2v', results, *s3_2)
 _sam('outputs/_2_test_5p-ran5_1v.sam', 'razer3_5p_ran5_1v', results, *s5_1)
 _sam('outputs/_1_test_5p-ran5_2v.sam', 'razer3_5p_ran5_2v', results, *s5_2)
 
-_sam('outputs/test_3p-ran5_1v.fastq.Aligned.out.sorted.sam', 'star_3p_1v', results,
-     *s3_1)
+_sam('outputs/test_3p-ran5_1v.fastq.Aligned.out.sorted.sam', 'star_3p_1v', results, *s3_1)
 _sam('outputs/star_3p_2.sam', 'star_3p_2v', results, *star_3p_2)
-_sam('outputs/test_5p-ran5_1v.fastq.Aligned.out.sorted.sam', 'star_5p_1v', results,
-     *s5_1)
+_sam('outputs/test_5p-ran5_1v.fastq.Aligned.out.sorted.sam', 'star_5p_1v', results, *s5_1)
 _sam('outputs/star_5p_2.sam', 'star_5p_2v', results, *star_5p_2)
 
 results.close()
+
+quagmir('simulations/3p_1.fastq','outputs/_2_test_3p-ran5_1v.fastq.isomir.sequence_info.tsv', 'results.txt')
+quagmir('simulations/3p_2.fastq','outputs/_2_test_3p-ran5_2v.fastq.isomir.sequence_info.tsv', 'results.txt')
