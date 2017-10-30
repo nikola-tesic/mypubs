@@ -9,7 +9,7 @@ def aligned(line, col):
 
 
 def same(mirna, fastq_name):
-    if fastq_name.split('_')[0] == mirna:
+    if fastq_name == mirna or fastq_name.startswith(mirna) or mirna.startswith(fastq_name):
         return 'yes'
     return 'no'
 
@@ -116,13 +116,13 @@ def microrazers(input_name, results, tool, data, dataseq, lendata, quals):
 
 
 def real_value(dict, key):
-    if key in dict:
+    if key in dict.keys():
         return dict[key]
     shortest = ""
-    for k in dict:
+    for k in dict.keys():
         if k.startswith(key) and (shortest == "" or len(key) < len(shortest)):
             shortest = k
-    return dict[k]
+    return dict[shortest]
 
 
 def mirexpress(input_name, results, tool, data, dataseq, lendata, quals):
@@ -135,7 +135,7 @@ def mirexpress(input_name, results, tool, data, dataseq, lendata, quals):
             next(mir)
             next(mir)
             # mir.next()
-            continue
+            #continue
         cols = line.split()
         if (line.find("hsa") < 0) and (line.find("1") >= 0) and cols[
             0] not in check:
@@ -144,9 +144,10 @@ def mirexpress(input_name, results, tool, data, dataseq, lendata, quals):
             add = name.find("add:null")
             mut = name.find("mut:null")
             check[cols[0]] = 1
+            #print("1" + ref + "\n" + "2" + data[name])
             results.write("%s\t%s\tyes\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
             name, ref, name.split("_")[0], add, mut, lendata[name],
-            quals[name], same(ref, name), tool))
+            quals[name], same(ref, data[name]), tool))
     mir.close()
 
     # if not aligned, print them here
@@ -243,5 +244,5 @@ _sam('outputs/star_5p_2.sam', 'star_5p_2v', results, *star_5p_2)
 
 results.close()
 
-quagmir('simulations/3p_1.fastq','outputs/_2_test_3p-ran5_1v.fastq.isomir.sequence_info.tsv', 'results.txt')
-quagmir('simulations/3p_2.fastq','outputs/_2_test_3p-ran5_2v.fastq.isomir.sequence_info.tsv', 'results.txt')
+#quagmir('simulations/3p_1.fastq','outputs/_2_test_3p-ran5_1v.fastq.isomir.sequence_info.tsv', 'results.txt')
+#quagmir('simulations/3p_2.fastq','outputs/_2_test_3p-ran5_2v.fastq.isomir.sequence_info.tsv', 'results.txt')
