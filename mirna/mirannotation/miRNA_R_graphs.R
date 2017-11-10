@@ -82,24 +82,12 @@ data$V10 <- as.character(data$V10)
 
 colnames(data) <- c("name","miRNA","mapped","hairpin","add","mut","read_length","quality","aligned","tool","changes","TP","TPmirna",'p3','p5','trim','groupup')
 
-# function for subsets from data
+# subsets from data
 
-data_subs <- function(data,string){
-  
-  dt_sub = data.frame(name = as.character(), miRNA = as.character(), mapped = as.character(), hairpin = as.character(), add = as.character(), mut = as.character(), read_length = as.integer(), quality = as.character(), aligned = as.character(), tool = as.character(), changes = as.character(),changes = as.character(), TP = as.character(), TPmirna =as.character(),p3 = as.integer(), p5 = as.integer(), trim = as.character())
-  
-  for (i in 1:nrow(data)){
-    if (data[i,17]==string) {
-      dt_sub = rbind(dt_sub,data[i,1:16])
-    }
-  }
-  return(dt_sub)
-}
-
-dt_3p_1 = data_subs(data,'3p_1')
-dt_3p_2 = data_subs(data,'3p_2')
-dt_5p_1 = data_subs(data,'5p_1')
-dt_5p_2 = data_subs(data,'5p_2')
+dt_3p_1 = subset(data,data[17]=='3p_1')
+dt_3p_2 = subset(data,data[17]=='3p_2')
+dt_5p_1 = subset(data,data[17]=='5p_1')
+dt_5p_2 = subset(data,data[17]=='5p_2')
 
 # Mapped
 
